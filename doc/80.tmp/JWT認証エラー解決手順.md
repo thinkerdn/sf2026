@@ -7,9 +7,14 @@
 {"error":"invalid_grant","error_description":"user hasn't approved this consumer"}
 ```
 
-### エラー2: user is not admin approved to access this app（現在のエラー）
+### エラー2: user is not admin approved to access this app
 ```
 {"error":"invalid_app_access","error_description":"user is not admin approved to access this app"}
+```
+
+### エラー3: invalid_client_id（現在のエラー）
+```
+{"error":"invalid_client_id","error_description":"client identifier invalid"}
 ```
 
 これらのエラーは、Salesforce側の接続アプリケーション（Connected App）の設定が不完全であることを示しています。
@@ -72,8 +77,39 @@ python sf-connect.py
 
 ## トラブルシューティング
 
-### エラーが続く場合：
+### エラー3: invalid_client_id の解決方法 ⚠️
+
+このエラーは **Consumer Key（コンシューマ鍵）が無効** であることを示しています。
+
+**確認手順：**
+
+1. **Salesforceで正しいConsumer Keyを取得**
+   - [設定] > [アプリケーションマネージャー] に移動
+   - 対象の接続アプリケーションの▼ > **[詳細を表示]** をクリック
+   - **「コンシューマ鍵」** の値をコピー（長い英数字の文字列）
+
+2. **sf-connect.pyのconsumer_keyを更新**
+   ```python
+   consumer_key = '正しいコンシューマ鍵をここに貼り付け'
+   ```
+
+3. **接続アプリケーションが有効であることを確認**
+   - アプリケーションマネージャーで対象アプリが「有効」になっているか確認
+   - 削除されていないか確認
+
+4. **再テスト**
+   ```bash
+   python sf-connect.py
+   ```
+
+**よくある原因：**
+- Consumer Keyをコピーする際に、前後にスペースが入っている
+- 別の接続アプリケーションのConsumer Keyを使用している
+- 接続アプリケーションが削除または無効化されている
+- 接続アプリケーションを再作成した際に、古いConsumer Keyを使用している
+
+### その他のエラーが続く場合：
 1. ユーザー `conn_test@thinkerdn.net` が有効であることを確認
 2. ユーザーが正しいプロファイル/権限セットを持っていることを確認
-3. 接続アプリケーションの Consumer Key が正しいことを確認
-4. 秘密鍵と公開鍵のペアが正しいことを確認（同じ鍵ペアから生成されているか）
+3. 秘密鍵と公開鍵のペアが正しいことを確認（同じ鍵ペアから生成されているか）
+4. token_urlとaudのドメインが一致していることを確認

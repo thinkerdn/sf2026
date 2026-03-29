@@ -5,7 +5,7 @@ from cryptography.hazmat.primitives import serialization
 
 # --- 設定値 ---
 username = 'data.renkei@f.flect.co.jp.salesdxpjt.fldevcrm'
-consumer_key = '3MVG96vieT8jjWjKWnpDfYnzfJQVTuNk01izNssLf86jiSZoDnjb72NTCi_.NdmXPDkJWWzc3qw1KVTuFeNSo'
+consumer_key = '3MVG96vIeT8jJWjKWnpDfYnzfJQVTuNk01izNssLf86jiSZoDnJb72NTCi_.NdmXPDkJWWzc3qw1KVTuFeNSo'
 key_file = 'sf-dev.key'  # 秘密鍵ファイルへのパス
 token_url = "https://dd500000bpcm3eaf--fldevcrm.sandbox.my.salesforce.com/services/oauth2/token"
 # token_url = 'https://login.salesforce.com/services/oauth2/token' # 本番環境
