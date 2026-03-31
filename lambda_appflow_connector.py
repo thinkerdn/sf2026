@@ -68,13 +68,29 @@ def describe_connector_configuration(event):
         'authenticationConfig': {
             'isBasicAuthSupported': False,
             'isApiKeyAuthSupported': False,
-            'isOAuth2Supported': True,
-            'isCustomAuthSupported': False,
-            'oAuth2Defaults': {
-                'oauthScopes': ['api', 'refresh_token'],
-                'tokenUrl': [SALESFORCE_TOKEN_URL],
-                'authUrl': SALESFORCE_TOKEN_URL.replace('/services/oauth2/token', '/services/oauth2/authorize')
-            }
+            'isOAuth2Supported': False,
+            'isCustomAuthSupported': True,
+            'customAuthConfig': [
+                {
+                    'authenticationType': 'OAUTH2',
+                    'authParameters': [
+                        {
+                            'key': 'client_id',
+                            'isRequired': True,
+                            'label': 'Client ID',
+                            'description': 'Salesforce Consumer Key',
+                            'isSensitiveField': False
+                        },
+                        {
+                            'key': 'client_secret',
+                            'isRequired': True,
+                            'label': 'Client Secret',
+                            'description': 'Salesforce Consumer Secret',
+                            'isSensitiveField': True
+                        }
+                    ]
+                }
+            ]
         },
         'connectorConfiguration': {
             'isPrivateLinkEnabled': False,
