@@ -76,14 +76,14 @@ def describe_connector_configuration(event):
                     'authParameters': [
                         {
                             'key': 'client_id',
-                            'isRequired': True,
+                            'required': True,
                             'label': 'Client ID',
                             'description': 'Salesforce Consumer Key',
                             'isSensitiveField': False
                         },
                         {
                             'key': 'client_secret',
-                            'isRequired': True,
+                            'required': True,
                             'label': 'Client Secret',
                             'description': 'Salesforce Consumer Secret',
                             'isSensitiveField': True
