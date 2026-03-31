@@ -1,0 +1,123 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Salesforce AppFlow Custom Connector
+
+Globals:
+  Function:
+    Timeout: 60
+    MemorySize: 512
+    Runtime: python3.12
+
+Parameters:
+  SalesforceClientId:
+    Type: String
+    Description: Salesforce Consumer Key (Client ID)
+    Default: '3MVG9HtWXcDGV.nEIQERv68uqfeoto.hXr79io4W6pyO4DFXgnRRXmDFegJ70U0G7tj54wr5NsFAcenrr83wp'
+  
+  SalesforceClientSecret:
+    Type: String
+    Description: Salesforce Consumer Secret (Client Secret)
+    NoEcho: true
+    Default: '245C545D423DB3D770CE104B02B9DE6D81BBF41F802413FEE84B724B88359C70'
+  
+  SalesforceTokenUrl:
+    Type: String
+    Description: Salesforce Token Endpoint URL
+    Default: 'https://orgfarm-e3d99ff5bd-dev-ed.develop.my.salesforce.com/services/oauth2/token'
+
+Resources:
+  # AppFlow Custom Connector Lambda Function
+  AppFlowConnectorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: salesforce-appflow-connector
+      CodeUri: .
+      Handler: lambda_appflow_connector.lambda_handler
+      Description: Salesforce AppFlow Custom Connector using Client Credentials
+      Environment:
+        Variables:
+          SALESFORCE_CLIENT_ID: !Ref SalesforceClientId
+          SALESFORCE_CLIENT_SECRET: !Ref SalesforceClientSecret
+          SALESFORCE_TOKEN_URL: !Ref SalesforceTokenUrl
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: '*'
+      Tags:
+        Application: Salesforce-AppFlow-Integration
+        Environment: Development
+
+  # CloudWatch Logs
+  AppFlowConnectorFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${AppFlowConnectorFunction}'
+      RetentionInDays: 7
+
+  # AppFlow Custom Connector Profile用のIAMロール
+  AppFlowConnectorRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: salesforce-appflow-connector-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - appflow.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: InvokeLambdaPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource: !GetAtt AppFlowConnectorFunction.Arn
+
+  # Lambda実行権限（AppFlowからの呼び出しを許可）
+  AppFlowInvokeLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref AppFlowConnectorFunction
+      Action: lambda:InvokeFunction
+      Principal: appflow.amazonaws.com
+      SourceAccount: !Ref AWS::AccountId
+
+Outputs:
+  AppFlowConnectorFunctionArn:
+    Description: AppFlow Custom Connector Lambda Function ARN
+    Value: !GetAtt AppFlowConnectorFunction.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-ConnectorFunctionArn'
+
+  AppFlowConnectorFunctionName:
+    Description: AppFlow Custom Connector Lambda Function Name
+    Value: !Ref AppFlowConnectorFunction
+    Export:
+      Name: !Sub '${AWS::StackName}-ConnectorFunctionName'
+
+  AppFlowConnectorRoleArn:
+    Description: AppFlow Connector Role ARN
+    Value: !GetAtt AppFlowConnectorRole.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-ConnectorRoleArn'
+
+  SetupInstructions:
+    Description: Next steps to configure AppFlow Custom Connector
+    Value: !Sub |
+      1. AWS AppFlow Console → Connectors → Create custom connector
+      2. Connector label: Salesforce Client Credentials
+      3. Lambda function: ${AppFlowConnectorFunction}
+      4. Register the connector
+      5. Create a connection profile using the registered connector

@@ -1,0 +1,126 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Salesforce Client Credentials Lambda Function
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 256
+    Runtime: python3.12
+
+Parameters:
+  SalesforceClientId:
+    Type: String
+    Description: Salesforce Consumer Key (Client ID)
+    Default: '3MVG9HtWXcDGV.nEIQERv68uqfeoto.hXr79io4W6pyO4DFXgnRRXmDFegJ70U0G7tj54wr5NsFAcenrr83wp'
+  
+  SalesforceClientSecret:
+    Type: String
+    Description: Salesforce Consumer Secret (Client Secret)
+    NoEcho: true
+    Default: '245C545D423DB3D770CE104B02B9DE6D81BBF41F802413FEE84B724B88359C70'
+  
+  SalesforceTokenUrl:
+    Type: String
+    Description: Salesforce Token Endpoint URL
+    Default: 'https://orgfarm-e3d99ff5bd-dev-ed.develop.my.salesforce.com/services/oauth2/token'
+
+Resources:
+  SalesforceClientCredentialsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: salesforce-client-credentials
+      CodeUri: .
+      Handler: lambda_sf_client_credentials.lambda_handler
+      Description: Salesforce Client Credentials OAuth接続Lambda関数
+      Environment:
+        Variables:
+          SALESFORCE_CLIENT_ID: !Ref SalesforceClientId
+          SALESFORCE_CLIENT_SECRET: !Ref SalesforceClientSecret
+          SALESFORCE_TOKEN_URL: !Ref SalesforceTokenUrl
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: '*'
+      Tags:
+        Application: Salesforce-Integration
+        Environment: Development
+
+  SalesforceClientCredentialsFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${SalesforceClientCredentialsFunction}'
+      RetentionInDays: 7
+
+  # API Gateway (オプション)
+  SalesforceApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: salesforce-client-credentials-api
+      StageName: prod
+      Cors:
+        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: "'*'"
+
+  SalesforceApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: salesforce-api-gateway
+      CodeUri: .
+      Handler: lambda_sf_client_credentials.lambda_handler
+      Description: API Gateway経由でSalesforceに接続
+      Environment:
+        Variables:
+          SALESFORCE_CLIENT_ID: !Ref SalesforceClientId
+          SALESFORCE_CLIENT_SECRET: !Ref SalesforceClientSecret
+          SALESFORCE_TOKEN_URL: !Ref SalesforceTokenUrl
+      Events:
+        GetToken:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SalesforceApi
+            Path: /token
+            Method: GET
+        GetVersions:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SalesforceApi
+            Path: /versions
+            Method: GET
+        Query:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SalesforceApi
+            Path: /query
+            Method: POST
+
+Outputs:
+  SalesforceClientCredentialsFunctionArn:
+    Description: Salesforce Client Credentials Lambda Function ARN
+    Value: !GetAtt SalesforceClientCredentialsFunction.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-FunctionArn'
+
+  SalesforceClientCredentialsFunctionName:
+    Description: Salesforce Client Credentials Lambda Function Name
+    Value: !Ref SalesforceClientCredentialsFunction
+    Export:
+      Name: !Sub '${AWS::StackName}-FunctionName'
+
+  SalesforceApiUrl:
+    Description: API Gateway endpoint URL
+    Value: !Sub 'https://${SalesforceApi}.execute-api.${AWS::Region}.amazonaws.com/prod'
+    Export:
+      Name: !Sub '${AWS::StackName}-ApiUrl'
+
+  SalesforceApiId:
+    Description: API Gateway ID
+    Value: !Ref SalesforceApi
+    Export:
+      Name: !Sub '${AWS::StackName}-ApiId'
