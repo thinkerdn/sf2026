@@ -5,7 +5,8 @@ from cryptography.hazmat.primitives import serialization
 
 # --- 設定値 ---
 username = 'conn_test@thinkerdn.net'
-consumer_key = '3MVG9HtWXcDGV.nEIQERv68uqfXcPAvD.uUACicp1wEcD6s9U54eKfKi3Ijz9S8iZMiaSKW4mY6mFw16FffGd'
+# consumer_key = '3MVG9HtWXcDGV.nEIQERv68uqfXcPAvD.uUACicp1wEcD6s9U54eKfKi3Ijz9S8iZMiaSKW4mY6mFw16FffGd'
+consumer_key = '3MVG9HtWXcDGV.nEIQERv68uqfRaaJag3_LzlSUyLGPzOUqAWAVpBPKABo7QeFDRyrXIltqlaeZ.hgyDMt.QM'
 key_file = 'sf-dev.key'  # 秘密鍵ファイルへのパス
 token_url = "https://orgfarm-e3d99ff5bd-dev-ed.develop.my.salesforce.com/services/oauth2/token"
 # token_url = 'https://login.salesforce.com/services/oauth2/token' # 本番環境

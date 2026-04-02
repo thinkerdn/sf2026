@@ -1,0 +1,54 @@
+import jwt
+import time
+import requests
+from cryptography.hazmat.primitives import serialization
+
+# --- 設定値 ---
+username = 'gaibu_sys_icr_ts_hanbaiten_0714@toyotasystems.com.developer'
+consumer_key = '3MVG95ol_2z.5OsOsJrbjsoq7u8vcS0KP15Q4OEw6eBq2VtCmSxTsu1DZqq02emelED9fFSjBRZx5jQBMdfkz'
+key_file = 'sf-dev.key'  # 秘密鍵ファイルへのパス
+token_url = "https://04401-toyota-crm--developer.sandbox.my.salesforce.com/services/oauth2/token"
+# token_url = 'https://login.salesforce.com/services/oauth2/token' # 本番環境
+# token_url = 'https://test.salesforce.com/services/oauth2/token' # Sandbox
+
+# --- 1. 秘密鍵の読み込み ---
+with open(key_file, 'rb') as f:
+    private_key = serialization.load_pem_private_key(f.read(), password=None)
+
+# --- 2. JWTの生成 ---
+payload = {
+    'iss': consumer_key,
+    'sub': username,
+    'aud': 'https://04401-toyota-crm--developer.sandbox.my.salesforce.com', # 本番: login.salesforce.com, Sandbox: test.salesforce.com
+    'exp': 1775416409 #int(time.time()) + 60 * 60 * 24 * 365  # 1年間有効
+}
+assertion = jwt.encode(payload, private_key, algorithm='RS256')
+print(f"exp: {int(time.time()) + 300000}")
+print(f"assertion: {assertion}")
+
+# --- 3. アクセストークンの取得 ---
+
+#Salesforce Login URL:
+
+#https://04401-toyota-crm--developer.sandbox.my.salesforce.com/
+
+#ユーザー名:
+
+#gaibu_sys_icr_ts_hanbaiten_0714@toyotasystems.com.developer
+
+#外部クライアントアプリケーション名:
+
+#AWS_AppFlow_Connector
+
+#顧客の詳細:
+
+#• コンシューマー鍵:
+
+#3MVG95ol_2z.5OsOsJrbjsoq7u8vcS0KP15Q4OEw6eBq2VtCmSxTsu1DZqq02emelED9fFSjBRZx5jQBMdfkz
+
+#• コンシューマーの秘密:
+
+#B413D497D762E9E1CC95708A28BC7AB554E75861B873F8A3E45F153A1C963B18
+
+exp: 1775416624
+assertion: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIzTVZHOTVvbF8yei41T3NPc0pyYmpzb3E3dTh2Y1MwS1AxNVE0T0V3NmVCcTJWdENtU3hUc3UxRFpxcTAyZW1lbEVEOWZGU2pCUlp4NWpRQk1kZmt6Iiwic3ViIjoiZ2FpYnVfc3lzX2ljcl90c19oYW5iYWl0ZW5fMDcxNEB0b3lvdGFzeXN0ZW1zLmNvbS5kZXZlbG9wZXIiLCJhdWQiOiJodHRwczovLzA0NDAxLXRveW90YS1jcm0tLWRldmVsb3Blci5zYW5kYm94Lm15LnNhbGVzZm9yY2UuY29tIiwiZXhwIjoxODA2NjUyNjI0fQ.BlIgsMxG7xbI71lx5RhidNysfhMWPl9hwRiYmui9dn7G2jQ9AS4ycu07tFeKp1ssHX3-bCONPY7ubGQqKBBPBglbpjn8g-eV0eKV96KLP4C9j1EQiwH2TiKu4PEwIRl0n0EPhBt3DI3Dj1-1VrREZe2gmitGVlUbUlf5BWql7v8MSCldXad8OZlcT_Mugc-x-Dbf-NCACpaJlqgSTIKW5YWXrIIHddQ-QKk4D2CMKvaXXBoNiqpieLEXsVE7Qf2bGbnnDEEyvY2g3TK5z9lJ1O7lH6_chVXrpSe3oXJAilIn_APk9akZA6xIrYj5f40Kqx28tAuGlMRPijuvk-kdzQ

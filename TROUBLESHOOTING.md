@@ -1,5 +1,136 @@
 # Salesforce Client Credentials Lambda - トラブルシューティングガイド
 
+## エラー: "user hasn't approved this consumer"
+
+### 問題の説明
+
+```
+Response Status: 400
+Response Body: {"error":"invalid_grant","error_description":"user hasn't approved this consumer"}
+```
+
+このエラーは、JWT Bearer認証フロー（`sf-connect.py`）を使用する際に発生します。
+
+### 原因
+
+Salesforceの接続アプリケーション（Connected App）に対して、指定されたユーザーが承認を行っていないことが原因です。JWT Bearer認証では、ユーザーが事前に接続アプリケーションを承認する必要があります。
+
+### 解決方法
+
+#### 方法1: 事前承認（Pre-Authorization）を設定する【推奨】
+
+Salesforce管理者が接続アプリケーションに事前承認を設定することで、ユーザーの手動承認を不要にできます。
+
+1. **Salesforce Setupにログイン**
+   - 管理者アカウントでログイン
+
+2. **接続アプリケーションの設定を開く**
+   ```
+   Setup → App Manager → [Your Connected App] → Edit
+   ```
+
+3. **OAuth設定を確認**
+   - 「OAuth Settings」セクションで以下を確認:
+     - ✅ Enable OAuth Settings がチェックされている
+     - ✅ Callback URL が設定されている（例: `https://login.salesforce.com/services/oauth2/callback`）
+     - ✅ Selected OAuth Scopes に以下が含まれている:
+       - `api` - REST APIへのアクセス
+       - `refresh_token, offline_access` - リフレッシュトークン
+       - `full` - すべてのデータへのアクセス（必要に応じて）
+
+4. **管理者承認済みユーザーを設定**
+   - 「OAuth Settings」セクションで:
+     - ✅ 「Admin approved users are pre-authorized」をチェック
+   - 保存
+
+5. **権限セットまたはプロファイルを割り当て**
+   - 接続アプリケーションの詳細ページで「Manage」をクリック
+   - 「Manage Profiles」または「Manage Permission Sets」をクリック
+   - 使用するユーザー（`conn_test@thinkerdn.net`）のプロファイルまたは権限セットを選択
+   - 保存
+
+#### 方法2: ユーザーによる手動承認
+
+事前承認を設定できない場合は、ユーザーが手動で承認を行います。
+
+1. **承認URLを生成**
+   
+   以下のURLをブラウザで開きます（値を実際の設定に置き換えてください）:
+   
+   ```
+   https://orgfarm-e3d99ff5bd-dev-ed.develop.my.salesforce.com/services/oauth2/authorize?response_type=code&client_id=3MVG9HtWXcDGV.nEIQERv68uqfRaaJag3_LzlSUyLGPzOUqAWAVpBPKABo7QeFDRyrXIltqlaeZ.hgyDMt.QM&redirect_uri=https://login.salesforce.com/services/oauth2/callback
+   ```
+   
+   パラメータ:
+   - `client_id`: Consumer Key（`sf-connect.py`の`consumer_key`の値）
+   - `redirect_uri`: 接続アプリケーションで設定したCallback URL
+
+2. **ユーザーでログインして承認**
+   - 対象ユーザー（`conn_test@thinkerdn.net`）でログイン
+   - 「許可」ボタンをクリックして接続アプリケーションを承認
+
+3. **再度スクリプトを実行**
+   ```bash
+   python sf-connect.py
+   ```
+
+#### 方法3: 接続アプリケーションのポリシー設定を確認
+
+1. **接続アプリケーションの管理画面を開く**
+   ```
+   Setup → App Manager → [Your Connected App] → Manage
+   ```
+
+2. **OAuth Policiesを確認**
+   - 「Permitted Users」を確認:
+     - 「All users may self-authorize」に設定（開発環境の場合）
+     - または「Admin approved users are pre-authorized」に設定して、ユーザーを追加
+
+3. **IP制限を確認**
+   - 「IP Relaxation」を「Relax IP restrictions」に設定（開発環境の場合）
+
+### 確認事項チェックリスト
+
+- [ ] 接続アプリケーションで「Admin approved users are pre-authorized」がチェックされている
+- [ ] ユーザーのプロファイルまたは権限セットが接続アプリケーションに割り当てられている
+- [ ] OAuth Scopesに必要な権限（api, refresh_token等）が含まれている
+- [ ] ユーザー名（`username`）が正しい
+- [ ] Consumer Key（`consumer_key`）が正しい
+- [ ] 秘密鍵ファイル（`sf-dev.key`）が正しい
+- [ ] Token URLとAudience URLが一致している
+
+### デバッグ用のPythonスクリプト
+
+承認状況を確認するためのスクリプト:
+
+```python
+# check-oauth-approval.py
+import webbrowser
+
+consumer_key = '3MVG9HtWXcDGV.nEIQERv68uqfRaaJag3_LzlSUyLGPzOUqAWAVpBPKABo7QeFDRyrXIltqlaeZ.hgyDMt.QM'
+redirect_uri = 'https://login.salesforce.com/services/oauth2/callback'
+auth_url = 'https://orgfarm-e3d99ff5bd-dev-ed.develop.my.salesforce.com'
+
+approval_url = f"{auth_url}/services/oauth2/authorize?response_type=code&client_id={consumer_key}&redirect_uri={redirect_uri}"
+
+print("以下のURLをブラウザで開いて、ユーザーで承認してください:")
+print(approval_url)
+print("\n承認後、再度 sf-connect.py を実行してください。")
+
+# 自動的にブラウザを開く場合
+# webbrowser.open(approval_url)
+```
+
+### 関連エラー
+
+このエラーと関連する可能性のある他のエラー:
+
+- `invalid_client_id`: Consumer Keyが間違っている
+- `invalid_client`: 接続アプリケーションの設定が正しくない
+- `invalid_grant`: JWT署名が正しくない、または有効期限切れ
+
+---
+
 ## エラー: "sObject type 'Account' is not supported"
 
 ### 問題の説明
