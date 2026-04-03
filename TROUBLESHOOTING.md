@@ -1,5 +1,110 @@
 # Salesforce Client Credentials Lambda - トラブルシューティングガイド
 
+## エラー: AppFlowで「invalid_client_id」/ "コンシューマキーパラメーターがありません"
+
+### 問題の説明
+
+```
+エラー: invalid_client_id
+Salesforceログイン履歴: 失敗：コンシューマキーパラメーターがありません
+```
+
+このエラーは、`sf-connect-t.py`などで生成されたJWTトークンをAppFlowで直接使用しようとした際に発生します。
+
+### 原因
+
+**AppFlowはJWTトークンを直接受け付けません。**
+
+AppFlowの認証方式：
+- OAuth 2.0フローを使用
+- Consumer Key（Client ID）とConsumer Secret（Client Secret）を設定
+- AppFlowが自動的にトークンを取得・管理
+
+JWT Bearer認証（sf-connect-t.py）：
+- JWTトークンを生成してSalesforceに送信
+- アクセストークンを取得
+- 主にサーバー間通信で使用
+
+### 解決方法
+
+#### 方法1: Salesforce標準コネクタを使用【最も簡単・推奨】
+
+1. **AppFlow Console → Connections → Create connection**
+2. **Salesforceを選択**
+3. **接続情報の入力**
+   ```
+   Connection name: salesforce-oauth-connection
+   Environment: Sandbox（または Production）
+   ```
+4. **OAuth認証**
+   - 「Connect」をクリック
+   - Salesforceログイン画面でユーザーでログイン
+   - 「許可」をクリック
+5. **フローの作成**
+   - Flows → Create flow
+   - Source: Salesforce
+   - Connection: salesforce-oauth-connection
+
+#### 方法2: JWT Bearer用のカスタムコネクタを作成
+
+JWT Bearer認証を使用する場合は、カスタムコネクタ（Lambda関数）を作成する必要があります。
+
+1. **Lambda関数を作成**
+   - JWT Bearer認証ロジックを実装
+   - 環境変数に認証情報を設定：
+     - SALESFORCE_USERNAME
+     - SALESFORCE_CONSUMER_KEY
+     - SALESFORCE_PRIVATE_KEY
+     - SALESFORCE_TOKEN_URL
+     - SALESFORCE_AUDIENCE
+
+2. **AppFlowカスタムコネクタを登録**
+   - AppFlow Console → Connectors → Create custom connector
+   - Lambda関数を選択
+
+3. **接続プロファイルを作成**
+   - Connections → Create connection
+   - カスタムコネクタを選択
+
+詳細な実装方法は `SOLUTION_APPFLOW_JWT_ERROR.md` を参照してください。
+
+#### 方法3: Client Credentials方式のカスタムコネクタを使用
+
+既存の `lambda_appflow_connector.py` を使用：
+
+```bash
+# デプロイ
+sam build -t template-appflow.yaml
+sam deploy -t template-appflow.yaml --guided
+
+# 環境変数に設定:
+# SALESFORCE_CLIENT_ID: Consumer Key
+# SALESFORCE_CLIENT_SECRET: Consumer Secret
+# SALESFORCE_TOKEN_URL: Token URL
+```
+
+### 重要なポイント
+
+❌ **間違った方法**:
+```
+AppFlowに直接JWTトークンを入力
+→ AppFlowはJWTトークンを直接受け付けません
+```
+
+✅ **正しい方法**:
+```
+1. Salesforce標準コネクタでOAuth認証を使用
+2. カスタムコネクタ（Lambda）でJWT認証を実装
+3. Consumer KeyとSecretをLambda環境変数に設定
+```
+
+### 関連ドキュメント
+
+- `SOLUTION_APPFLOW_JWT_ERROR.md` - 詳細な解決方法とサンプルコード
+- `README_APPFLOW.md` - AppFlowカスタムコネクタの使用方法
+
+---
+
 ## エラー: "user hasn't approved this consumer"
 
 ### 問題の説明
