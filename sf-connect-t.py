@@ -24,7 +24,7 @@ payload = {
     'exp': int(time.time()) + 60 * 60 * 24 * 365  # 1年間有効
 }
 assertion = jwt.encode(payload, private_key, algorithm='RS256')
-print(f"exp: {int(time.time()) + 300000}")
+print(f"exp: {int(time.time()) + 60 * 60 * 24 * 365}")
 print(f"assertion: {assertion}")
 
 # --- 3. アクセストークンの取得 ---
